@@ -2,6 +2,7 @@ package blackjack.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -16,7 +17,7 @@ public class Hand {
 
   /**
    * Añade una carta a la mano.
-   * 
+   *
    * @param card Carta a añadir
    */
   public void addCard(Card card) {
@@ -32,7 +33,7 @@ public class Hand {
 
   /**
    * Obtiene todas las combinaciones posibles del total del valor de la mano.
-   * 
+   *
    * @return Valor de la mano
    */
   public Set<Integer> getTotalValues() {
@@ -46,15 +47,44 @@ public class Hand {
   }
 
   /**
+   * Obtiene el valor más pequeño de la mano siempre y cuando sea menor a 21. Si no hay un valor posible, devuelve `-1`.
+   *
+   * @return Valor más pequeño de la mano
+   */
+  public int getLowestValue() {
+    try {
+      return new TreeSet<Integer>(getTotalValues()).first();
+    } catch (NoSuchElementException e) {
+      return -1;
+    }
+  }
+
+  /**
+   * Obtiene el valor más alto de la mano siempre y cuando sea menor o igual a 21. Si no hay un valor posible, devuelve `-1`.
+   *
+   * @return Valor más alto de la mano
+   */
+  public int getHighestValue() {
+    try {
+      return new TreeSet<Integer>(getTotalValues()).last();
+    } catch (NoSuchElementException e) {
+      return -1;
+    }
+  }
+
+  /**
    * Método recursivo auxiliar para poder calcular las combinaciones.
-   * 
+   *
    * @param index      Índice actual de la carta
    * @param currentSum Suma actual de los valores
    * @param results    Conjunto donde se almacenan los resultados
    */
   private void calculateCombinations(int index, int currentSum, Set<Integer> results) {
     if (index == cards.size()) {
-      results.add(currentSum);
+      if (currentSum <= 21) {
+        results.add(currentSum);
+      }
+
       return;
     }
 
@@ -81,13 +111,11 @@ public class Hand {
     }
 
     for (int value : getTotalValues()) {
-      if (value <= 21) {
-        if (!valueSb.isEmpty()) {
-          valueSb.append(" o ");
-        }
-
-        valueSb.append(value);
+      if (!valueSb.isEmpty()) {
+        valueSb.append(" o ");
       }
+
+      valueSb.append(value);
     }
 
     return String.format("%s (%s)", handSb, valueSb);

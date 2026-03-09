@@ -1,5 +1,7 @@
 package blackjack.model;
 
+import java.util.Set;
+
 /**
  * Representa una carta de la baraja.
  */
@@ -29,7 +31,7 @@ public class Card {
    * 
    * @return Valores de la carta.
    */
-  public int[] getValues() {
+  public Set<Integer> getValues() {
     return rank.getValues();
   }
 
