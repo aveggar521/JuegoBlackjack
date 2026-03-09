@@ -8,21 +8,28 @@ public class Deck {
   private List<Card> cards = new ArrayList<>();
 
   public Deck() {
+    fill();
+    shuffle();
+  }
+
+  public Card pickCard() {
+    if (cards.isEmpty()) {
+      fill();
+    }
+
+    return cards.removeFirst();
+  }
+
+  private void fill() {
     for (Suit suit : Suit.values()) {
       for (Rank rank : Rank.values()) {
         Card card = new Card(suit, rank);
         cards.add(card);
       }
     }
-
-    shuffleDeck();
   }
 
-  public Card pickCard() {
-    return cards.removeFirst();
-  }
-
-  private void shuffleDeck() {
+  private void shuffle() {
     Collections.shuffle(cards);
   }
 
