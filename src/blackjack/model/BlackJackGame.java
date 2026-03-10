@@ -1,113 +1,140 @@
 package blackjack.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
-/**
- * Clase principal que controla la lógica y el flujo de una partida de BlackJack. Coordina la interacción entre la baraja, el jugador y el crupier (dealer).
- */
 public class BlackJackGame {
-  /** Baraja de cartas utilizada en el juego. */
   private Deck deck;
-  /** Jugador humano. */
-  private Player player;
-  /** Crupier (Dealer) del casino. */
+  private List<Player> players;
   private Dealer dealer;
-  /** Scanner para la entrada de datos por consola. */
   private Scanner scanner;
+  private boolean dealerTurnStarted; // Controla si mostramos la carta oculta
 
-  /**
-   * Crea una nueva instancia del juego de BlackJack.
-   * 
-   * @param playerName Nombre del jugador que va a participar.
-   */
-  public BlackJackGame(String playerName) {
+  public BlackJackGame() {
     this.deck = new Deck();
-    this.player = new Player(playerName);
+    this.players = new ArrayList<>();
     this.dealer = new Dealer();
     this.scanner = new Scanner(System.in);
+    this.dealerTurnStarted = false;
   }
 
   /**
-   * Inicia el flujo principal del juego: reparto inicial, turnos y resolución.
+   * Añade jugadores a la partida antes de empezar.
    */
-  public void iniciar() {
-    System.out.println("--- Inicio de la partida de BlackJack ---");
+  public void addPlayer(String name) {
+    players.add(new Player(name));
+  }
 
-    // 1. Reparto inicial: 2 cartas para cada uno
-    player.addCard(deck.pickCard());
-    dealer.addCard(deck.pickCard());
-    player.addCard(deck.pickCard());
-    dealer.addCard(deck.pickCard());
-
-    // 2. Turno del Jugador
-    ejecutarTurnoJugador();
-
-    // 3. Turno del Dealer (solo si el jugador no se ha pasado de 21)
-    if (player.getHand().getHighestValue() != -1) {
-      ejecutarTurnoDealer();
+  /**
+   * Muestra el estado de la mesa. Si el turno del dealer no ha empezado, ocultamos su puntuación real y solo vemos su primera carta.
+   */
+  private void showTable() {
+    System.out.println("\n========================================");
+    if (!dealerTurnStarted) {
+      // Solo se ve la primera carta del Crupier al principio
+      System.out.println(" CRUPIER: [Carta Oculta] y " + dealer.getHand().toString().split(" ")[0]);
+    } else {
+      System.out.println(" CRUPIER: " + dealer.getHand().toString());
     }
 
-    // 4. Mostrar resultado final
-    comprobarGanador();
+    for (Player p : players) {
+      System.out.println(" " + p.toString());
+    }
+    System.out.println("========================================");
   }
 
-  /**
-   * Gestiona el turno del jugador permitiéndole pedir cartas hasta que decida plantarse o se pase de 21 puntos.
-   */
-  private void ejecutarTurnoJugador() {
-    boolean plantado = false;
+  public void start() {
+    if (players.isEmpty()) {
+      System.out.println("No hay jugadores para empezar.");
+      return;
+    }
 
-    while (!plantado && player.canRequest()) {
-      System.out.println("\n" + player.toString());
-      System.out.print("¿Deseas pedir carta (P) o plantarte (S)? ");
+    // 1. REPARTO INICIAL (2 cartas a cada uno)
+    for (int i = 0; i < 2; i++) {
+      for (Player p : players)
+        p.addCard(deck.pickCard());
+      dealer.addCard(deck.pickCard());
+    }
+
+    // 2. TURNOS DE LOS JUGADORES
+    for (Player p : players) {
+      playerTurn(p);
+    }
+
+    // 3. TURNO DEL CRUPIER
+    // Solo juega si al menos un jugador no se ha pasado
+    boolean anyPlayerAlive = players.stream().anyMatch(p -> p.getHand().getHighestValue() != -1);
+
+    dealerTurnStarted = true; // Ahora revelamos la mano del Crupier
+    if (anyPlayerAlive) {
+      dealerTurn();
+    } else {
+      System.out.println("\nTodos los jugadores se pasaron. El Crupier no necesita jugar.");
+      showTable();
+    }
+
+    // 4. RESULTADOS
+    checkWinners();
+  }
+
+  private void playerTurn(Player p) {
+    boolean plant = false;
+    System.out.println("\n>>> TURNO DE: " + p.toString().split(":")[0]);
+
+    while (!plant && p.canRequest()) {
+      showTable();
+      System.out.print(p.toString().split(":")[0] + ", ¿(P)Pedir o (S)Plantarse? ");
       String decision = scanner.nextLine().trim().toUpperCase();
 
       if (decision.equals("P")) {
-        player.addCard(deck.pickCard());
-        if (player.getHand().getHighestValue() == -1) {
-          System.out.println("\n" + player.toString());
-          System.out.println("¡Te has pasado de 21!");
-          plantado = true;
+        p.addCard(deck.pickCard());
+        if (p.getHand().getHighestValue() == -1) {
+          showTable();
+          System.out.println("¡" + p.toString().split(":")[0] + " SE HA PASADO!");
+          plant = true;
         }
       } else {
-        plantado = true;
+        plant = true;
       }
     }
   }
 
-  /**
-   * Gestiona el turno del Dealer. Según la lógica de Dealer, pedirá carta mientras su valor más alto sea inferior a 17.
-   */
-  private void ejecutarTurnoDealer() {
-    System.out.println("\n--- Turno del Dealer ---");
-    while (dealer.canRequest()) {
-      System.out.println("El Dealer pide carta...");
+  private void dealerTurn() {
+    System.out.println("\n--- Turno del Crupier ---");
+    showTable();
+
+    while (dealer.getHand().getHighestValue() != -1 && dealer.canRequest()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+      }
+      System.out.println("El Crupier pide carta...");
       dealer.addCard(deck.pickCard());
+      showTable();
     }
-    System.out.println(dealer.toString());
   }
 
-  /**
-   * Compara las manos del jugador y el dealer para determinar quién ha ganado la partida e imprime el resultado por consola.
-   */
-  public void comprobarGanador() {
-    int puntosJugador = player.getHand().getHighestValue();
-    int puntosDealer = dealer.getHand().getHighestValue();
+  public void checkWinners() {
+    int dPoints = dealer.getHand().getHighestValue();
+    System.out.println("\n--- RESULTADOS FINALES ---");
 
-    System.out.println("\n--- RESULTADO FINAL ---");
-    System.out.println("Puntos Jugador: " + (puntosJugador == -1 ? "Bust (>21)" : puntosJugador));
-    System.out.println("Puntos Dealer: " + (puntosDealer == -1 ? "Bust (>21)" : puntosDealer));
+    for (Player p : players) {
+      int pPoints = p.getHand().getHighestValue();
+      String pName = p.toString().split(":")[0];
 
-    if (puntosJugador == -1) {
-      System.out.println("Resultado: Gana la Casa (Jugador se pasó).");
-    } else if (puntosDealer == -1) {
-      System.out.println("Resultado: ¡GANASTE! (Dealer se pasó).");
-    } else if (puntosJugador > puntosDealer) {
-      System.out.println("Resultado: ¡GANASTE!");
-    } else if (puntosJugador < puntosDealer) {
-      System.out.println("Resultado: Gana la Casa.");
-    } else {
-      System.out.println("Resultado: Empate (Push).");
+      System.out.print(pName + ": ");
+      if (pPoints == -1) {
+        System.out.println("Pierde (Bust)");
+      } else if (dPoints == -1) {
+        System.out.println("¡GANA! (Crupier se pasó)");
+      } else if (pPoints > dPoints) {
+        System.out.println("¡GANA! (" + pPoints + " vs " + dPoints + ")");
+      } else if (pPoints < dPoints) {
+        System.out.println("Pierde (" + dPoints + " vs " + pPoints + ")");
+      } else {
+        System.out.println("Empate (Push)");
+      }
     }
   }
 }
