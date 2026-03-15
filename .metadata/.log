@@ -192,3 +192,18 @@ java.lang.ClassCastException: class org.eclipse.ui.internal.ErrorViewPart cannot
 	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:563)
 	at org.eclipse.equinox.launcher.Main.run(Main.java:1415)
 	at org.eclipse.equinox.launcher.Main.main(Main.java:1387)
+
+!ENTRY org.eclipse.jdt.launching 4 107 2026-03-15 19:09:33.819
+!MESSAGE Launch configuration Main references non-existing project JuegoBlackjack.
+
+!ENTRY org.eclipse.jdt.launching 4 107 2026-03-15 19:09:51.445
+!MESSAGE Launch configuration Main references non-existing project JuegoBlackjack.
+
+!ENTRY org.eclipse.jdt.launching 4 107 2026-03-15 19:10:05.183
+!MESSAGE Launch configuration Main references non-existing project JuegoBlackjack.
+
+!ENTRY org.eclipse.jdt.launching 4 107 2026-03-15 19:10:37.466
+!MESSAGE Launch configuration Main references non-existing project JuegoBlackjack.
+
+!ENTRY org.eclipse.jdt.launching 4 107 2026-03-15 19:11:15.315
+!MESSAGE Launch configuration Main references non-existing project JuegoBlackjack.
