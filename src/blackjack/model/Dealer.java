@@ -19,7 +19,9 @@ public class Dealer extends Member {
    * @return true si puede pedir carta, false si no
    */
   @Override
-  public boolean canRequest() {
-    return hand.getHighestValue() < 17;
+  public boolean canRequest() { 
+    int valor = hand.getHighestValue();
+    // Si valor es -1, significa que ya se pasó de 21, así que debe parar (false)
+    return valor != -1 && valor < 17;
   }
 }

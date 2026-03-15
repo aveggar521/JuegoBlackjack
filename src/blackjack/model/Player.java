@@ -87,7 +87,8 @@ public class Player extends Member {
    */
   @Override
   public boolean canRequest() {
-    return hand.getLowestValue() < 21;
+    // Si ya se pasó (-1), no puede pedir más
+    return hand.getHighestValue() != -1 && hand.getHighestValue() < 21;
   }
 
   /**

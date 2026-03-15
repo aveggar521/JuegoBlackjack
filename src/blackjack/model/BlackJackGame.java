@@ -4,137 +4,148 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * Maneja turnos, apuestas y estados.
+ */
 public class BlackJackGame {
   private Deck deck;
   private List<Player> players;
   private Dealer dealer;
   private Scanner scanner;
-  private boolean dealerTurnStarted; // Controla si mostramos la carta oculta
+  private boolean dealerTurnStarted;
 
   public BlackJackGame() {
     this.deck = new Deck();
     this.players = new ArrayList<>();
     this.dealer = new Dealer();
     this.scanner = new Scanner(System.in);
-    this.dealerTurnStarted = false;
   }
 
   /**
-   * Añade jugadores a la partida antes de empezar.
+   * Registra un jugador.
+   * @param name Nombre del usuario.
    */
   public void addPlayer(String name) {
     players.add(new Player(name));
   }
 
-  /**
-   * Muestra el estado de la mesa. Si el turno del dealer no ha empezado, ocultamos su puntuación real y solo vemos su primera carta.
-   */
+  private void resetRound() {
+    dealer.getHand().clear();
+    for (Player p : players) p.getHand().clear();
+    dealerTurnStarted = false;
+  }
+
   private void showTable() {
-    System.out.println("\n========================================");
+    System.out.println("\n--- MESA ---");
     if (!dealerTurnStarted) {
-      // Solo se ve la primera carta del Crupier al principio
-      System.out.println(" CRUPIER: [Carta Oculta] y " + dealer.getHand().toString().split(" ")[0]);
+      String mano = dealer.getHand().toString();
+      String carta1 = mano.contains(" ") ? mano.split(" ")[0] : "??";
+      System.out.println(" CRUPIER: [" + carta1 + "] [HIDDEN]");
     } else {
       System.out.println(" CRUPIER: " + dealer.getHand().toString());
     }
-
-    for (Player p : players) {
-      System.out.println(" " + p.toString());
-    }
-    System.out.println("========================================");
+    for (Player p : players) System.out.println(" " + p.toString());
   }
 
+  /**
+   * Ejecuta una ronda completa.
+   */
   public void start() {
-    if (players.isEmpty()) {
-      System.out.println("No hay jugadores para empezar.");
-      return;
+    if (players.isEmpty()) return;
+    resetRound();
+
+    // APUESTAS
+    for (Player p : players) {
+      boolean ok = false;
+      while (!ok) {
+        try {
+          System.out.print(p.toString().split(":")[0] + " (" + p.getBalance() + "€). Apuesta: ");
+          p.placeBet(Integer.parseInt(scanner.nextLine()));
+          ok = true;
+        } catch (Exception e) {
+          System.out.println("Error: " + e.getMessage());
+        }
+      }
     }
 
-    // 1. REPARTO INICIAL (2 cartas a cada uno)
+    // REPARTO
     for (int i = 0; i < 2; i++) {
-      for (Player p : players)
-        p.addCard(deck.pickCard());
+      for (Player p : players) p.addCard(deck.pickCard());
       dealer.addCard(deck.pickCard());
     }
 
-    // 2. TURNOS DE LOS JUGADORES
-    for (Player p : players) {
-      playerTurn(p);
-    }
+    // TURNOS JUGADORES
+    for (Player p : players) playerTurn(p);
 
-    // 3. TURNO DEL CRUPIER
-    // Solo juega si al menos un jugador no se ha pasado
-    boolean anyPlayerAlive = players.stream().anyMatch(p -> p.getHand().getHighestValue() != -1);
-
-    dealerTurnStarted = true; // Ahora revelamos la mano del Crupier
-    if (anyPlayerAlive) {
+    // TURNO CRUPIER
+    dealerTurnStarted = true;
+    if (players.stream().anyMatch(p -> p.getHand().getHighestValue() != -1)) {
       dealerTurn();
     } else {
-      System.out.println("\nTodos los jugadores se pasaron. El Crupier no necesita jugar.");
       showTable();
     }
 
-    // 4. RESULTADOS
     checkWinners();
   }
 
   private void playerTurn(Player p) {
-    boolean plant = false;
-    System.out.println("\n>>> TURNO DE: " + p.toString().split(":")[0]);
-
-    while (!plant && p.canRequest()) {
+    String nom = p.toString().split(":")[0];
+    while (p.canRequest()) {
       showTable();
-      System.out.print(p.toString().split(":")[0] + ", ¿(P)Pedir o (S)Plantarse? ");
-      String decision = scanner.nextLine().trim().toUpperCase();
-
-      if (decision.equals("P")) {
+      System.out.print(nom + " ¿(P)edir o (S)lantarse? ");
+      if (scanner.nextLine().trim().toUpperCase().equals("P")) {
         p.addCard(deck.pickCard());
-        if (p.getHand().getHighestValue() == -1) {
-          showTable();
-          System.out.println("¡" + p.toString().split(":")[0] + " SE HA PASADO!");
-          plant = true;
-        }
-      } else {
-        plant = true;
-      }
+      } else break;
     }
   }
 
   private void dealerTurn() {
-    System.out.println("\n--- Turno del Crupier ---");
-    showTable();
-
-    while (dealer.getHand().getHighestValue() != -1 && dealer.canRequest()) {
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-      }
-      System.out.println("El Crupier pide carta...");
-      dealer.addCard(deck.pickCard());
+    while (dealer.canRequest()) {
       showTable();
+      try { Thread.sleep(1000); } catch (InterruptedException e) {}
+      dealer.addCard(deck.pickCard());
+    }
+    showTable();
+  }
+
+  /**
+   * Compara puntos y ajusta balances.
+   */
+  public void checkWinners() {
+    int d = dealer.getHand().getHighestValue();
+    System.out.println("\n--- RESULTADOS ---");
+    for (Player p : players) {
+      int pts = p.getHand().getHighestValue();
+      System.out.print(p.toString().split(":")[0] + ": ");
+      if (pts == -1) {
+        System.out.print("BUST. ");
+        p.loseBet();
+      } else if (d == -1 || pts > d) {
+        System.out.print("GANA. ");
+        p.winBet();
+      } else if (pts < d) {
+        System.out.print("PIERDE. ");
+        p.loseBet();
+      } else {
+        System.out.print("PUSH. ");
+        p.pushBet();
+      }
+      System.out.println("Saldo: " + p.getBalance() + "€");
     }
   }
 
-  public void checkWinners() {
-    int dPoints = dealer.getHand().getHighestValue();
-    System.out.println("\n--- RESULTADOS FINALES ---");
+  /**
+   * Echa a los que tengan menos de 5€.
+   */
+  public void removeBrokePlayers() {
+    players.removeIf(p -> p.getBalance() < 5);
+  }
 
-    for (Player p : players) {
-      int pPoints = p.getHand().getHighestValue();
-      String pName = p.toString().split(":")[0];
-
-      System.out.print(pName + ": ");
-      if (pPoints == -1) {
-        System.out.println("Pierde (Bust)");
-      } else if (dPoints == -1) {
-        System.out.println("¡GANA! (Crupier se pasó)");
-      } else if (pPoints > dPoints) {
-        System.out.println("¡GANA! (" + pPoints + " vs " + dPoints + ")");
-      } else if (pPoints < dPoints) {
-        System.out.println("Pierde (" + dPoints + " vs " + pPoints + ")");
-      } else {
-        System.out.println("Empate (Push)");
-      }
-    }
+  /**
+   * Mira si queda alguien.
+   * @return true si hay jugadores.
+   */
+  public boolean hasPlayers() {
+    return !players.isEmpty();
   }
 }

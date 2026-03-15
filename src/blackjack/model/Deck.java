@@ -29,7 +29,7 @@ public class Deck {
       shuffle();
     }
 
-    return cards.removeFirst();
+    return cards.remove(0);
   }
 
   /**
